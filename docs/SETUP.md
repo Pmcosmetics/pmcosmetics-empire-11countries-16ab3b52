@@ -1,68 +1,48 @@
-# PM Cosmetics Hub - Setup Guide
+# PM Cosmetics Hub — Setup & Launch Gate
 
-## Quick Start
+## Current runtime
 
-### Prerequisites
-- Node.js 20 (the repository's CI runtime)
-- npm 9+
-- Git
-- Docker (optional; the current checked-in API does not require PostgreSQL to start)
+The canonical repository is deployed to Railway for the production API and is also structured for Vercel via `api/index.mjs` and `vercel.json`.
 
-### 1. Clone Repository
-```bash
-git clone https://github.com/Pmcosmetics/pmcosmetics-empire-11countries.git
-cd pmcosmetics-empire-11countries
-```
+Runtime flow:
 
-### 2. Install Dependencies
-```bash
-npm ci
-```
+`Manus catalog -> validation -> Airtable evidence -> publication gate -> WooCommerce/Shopify/Noon/Amazon/Jumia`
 
-### 3. Environment
-Copy `.env.example` to `.env` only when you need environment-backed integrations. Never commit secrets.
+The API intentionally keeps the commercial publication gate **CLOSED** until product identity, barcode/SKU, stock, price, and image evidence are verified.
 
-### 4. Build, Validate, and Test
-```bash
-npm run build
-npm run validate
-npm test
-```
+## Integration endpoints
 
-### 5. Start the API
-```bash
-npm start
-```
+- `GET /api/health` — runtime and architecture health
+- `GET /api/manus/status` — Manus adapter configuration
+- `POST /api/manus/import` — validate a Manus product array or configured Manus feed; staging only
+- `POST /api/manus/woocommerce/sync` — Manus → WooCommerce pipeline; dry-run by default
+- `GET /api/woocommerce/status` — WooCommerce configuration state without exposing secrets
+- `GET /api/woocommerce/check` — live WooCommerce connectivity check when credentials are configured
+- `POST /api/woocommerce/sync` — batch create/update; dry-run by default
+- `GET /api/products/staging` — evidence staging status
 
-The current server exposes:
-- `GET /api/health` → health response with the publication gate marked `CLOSED`
-- `/api/products` → intentionally returns `503 DATA_INTAKE_LOCKED` until verified product intake is available
+## WooCommerce configuration
 
-## Configuration
+Create WooCommerce REST API credentials with the minimum permissions required for the intended operation. WooCommerce supports API-key authentication over HTTPS, including Basic authentication with consumer key/secret.
 
-- Markets: `config/markets.json`
-- Catalog contract: `config/catalog.schema.json`
-- Product staging: `data/products/`
-- Real product-image staging: `data/images/real/`
+Set these variables in Railway/Vercel secret storage:
 
-The repository currently requires evidence-backed catalog and inventory validation before publication. Do not add guessed SKU, name, price, stock, barcode, or image values.
+`WOOCOMMERCE_URL`
+`WOOCOMMERCE_CONSUMER_KEY`
+`WOOCOMMERCE_CONSUMER_SECRET`
+`WOOCOMMERCE_SYNC_ENABLED=true` only after connectivity is verified
+`WOOCOMMERCE_BATCH_SIZE=50`
 
-## Current Implementation Status
+The connector reads existing products with pagination, matches on SKU, and uses WooCommerce's batch product endpoint for creates/updates. WooCommerce's product controller exposes batch create/update/delete operations.
 
-The repository contains the validation/build/test gate and a minimal API server. Database, authentication, product intake, and channel integrations are not yet implemented as production services in the current `main` branch.
+## Manus catalog over 2,000 products
 
-The checked-in `src/db/db.ts` is currently not wired into the running server; treat it as unfinished infrastructure rather than an active database layer.
+The Manus adapter accepts a configured HTTPS JSON feed or a direct JSON body. It validates SKU/name identity, removes duplicate SKUs from the run, and supports up to 10,000 records per run by configuration.
 
-## Testing
+The Manus adapter does **not** automatically make the products publishable. Evidence remains required before any commercial sync.
 
-Run the contract gate with:
-```bash
-npm test
-```
+## Verification sequence
 
-## Deployment
-
-The repository's canonical CI workflow runs:
 ```bash
 npm ci
 npm run build
@@ -70,11 +50,29 @@ npm run validate
 npm test
 ```
 
-GitHub Pages, Supabase, and external sales-channel integrations require separate deployment/configuration work.
+Then verify:
+
+```
+GET /api/health
+GET /api/manus/status
+GET /api/woocommerce/status
+GET /api/woocommerce/check
+```
+
+For a large Manus feed, run a dry-run first:
+
+```json
+{
+  "dryRun": true
+}
+```
+
+Only change `COMMERCIAL_PUBLISH_GATE` to `OPEN` after the evidence gate has been independently verified for the exact records being published.
 
 ## Security
 
-- Never commit `.env` or credentials.
-- Keep secrets in the deployment platform's secret store.
-- Do not publish unverified product data.
-- Review `docs/SECURITY.md` before enabling integrations.
+- Never commit WooCommerce keys, Manus tokens, or other credentials.
+- Keep secrets in Railway/Vercel secret storage.
+- Use HTTPS for all remote integrations.
+- Keep commercial publication CLOSED for unverified inventory.
+- Do not treat a successful connector dry-run as evidence that PM owns the stock.
