@@ -2,7 +2,16 @@ import { readFile } from "node:fs/promises";
 
 const schema = JSON.parse(await readFile("config/catalog.schema.json", "utf8"));
 if (schema?.properties?.brand?.type !== "string") throw new Error("Catalog brand must accept the full brand catalog");
-if (!schema?.properties?.sku?.pattern) throw new Error("Catalog SKU pattern is missing");
+const skuPattern = schema?.properties?.sku?.pattern;
+if (!skuPattern) throw new Error("Catalog SKU pattern is missing");
+
+const skuRegex = new RegExp(skuPattern);
+for (const sku of ["PM-ABC12345", "DERMAELLE007", "86067"]) {
+  if (!skuRegex.test(sku)) {
+    throw new Error(`Catalog SKU contract rejects known live SKU format: ${sku}`);
+  }
+}
+
 if (!Array.isArray(schema?.properties?.markets?.items?.enum) || schema.properties.markets.items.enum.length !== 11) {
   throw new Error("Catalog markets must contain all 11 configured markets");
 }
