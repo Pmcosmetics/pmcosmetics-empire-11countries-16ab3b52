@@ -40,3 +40,15 @@ jobs:
         run: npm run validate
       - name: Test
         run: npm test
+      - name: Verify build evidence
+        shell: bash
+        run: |
+          test -s dist/build-manifest.json
+          node -e 'const fs=require("fs"); const m=JSON.parse(fs.readFileSync("dist/build-manifest.json","utf8")); if (m.gate !== "CLOSED") throw new Error("Build gate is not CLOSED"); if (m.productsApi !== "503 DATA_INTAKE_LOCKED") throw new Error("Products API lock evidence is missing"); console.log("Build evidence verified:", JSON.stringify(m));'
+      - name: Upload CI evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: pmcosmetics-ci-evidence
+          path: dist/build-manifest.json
+          if-no-files-found: error
+          retention-days: 14
