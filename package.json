@@ -6,7 +6,7 @@
   "author": "PM Cosmetics",
   "license": "PRIVATE",
   "engines": {
-    "node": ">=18.0.0",
+    "node": ">=20.0.0",
     "npm": ">=9.0.0"
   },
   "scripts": {
@@ -15,7 +15,8 @@
     "test": "node scripts/test-gate.mjs",
     "test:watch": "jest --watch",
     "deploy": "npm run build && npm run validate",
-    "start": "node scripts/start.mjs"
+    "start": "node scripts/start.mjs",
+    "enrich:reference": "node scripts/enrich-retailer-reference.mjs"
   },
   "dependencies": {
     "axios": "^1.6.0",
@@ -28,13 +29,11 @@
     "jsonschema": "^1.4.1",
     "lodash": "^4.17.21",
     "morgan": "^1.10.0",
-    "multer": "^1.4.5-lts.1",
-    "nodemailer": "^6.9.7",
+    "multer": "2.4.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "shopify-api": "^0.2.3",
     "stripe": "^14.0.0",
-    "uuid": "^9.0.1",
     "winston": "^3.11.0",
     "zod": "^3.22.4"
   },
