@@ -14,8 +14,10 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json({ limit: "25mb" }));
 
+// gate: "CLOSED" - Active server gate contract
 const gateState = () => String(process.env.COMMERCIAL_PUBLISH_GATE || "CLOSED").toUpperCase() === "OPEN" ? "OPEN" : "CLOSED";
 
+// DATA_INTAKE_LOCKED - Active products API lock
 const locked = (service, reason = "DATA_INTAKE_LOCKED") => ({
   ok: false, service, status: 503, gate: gateState(), reason
 });
