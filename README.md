@@ -1,4 +1,4 @@
-# PM Cosmetics Hub - Empire 11 Countries 👑
+PM Cosmetics Hub - Empire 11 Countries 👑
 
 **The Complete E-Commerce Empire for Beauty Products Across 11 Markets**
 
